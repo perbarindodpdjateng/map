@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direktori BPR & BPRS Jawa Tengah</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg:#f4f6fa; --surface:#fff; --border:#e2e8f0; --border-s:#cbd5e1;
+            --tp:#0f172a; --ts:#475569; --tm:#94a3b8;
+            --blue:#1d4ed8; --blue-l:#eff6ff; --blue-m:#3b82f6;
+            --green:#15803d; --green-l:#f0fdf4;
+            --amber:#d97706; --red:#dc2626;
+            --sw:340px; --hh:56px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden;color:var(--tp)}
+
+        /* HEADER */
+        header{height:var(--hh);background:#0c1e3d;display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;gap:12px}
+        .hbrand{display:flex;align-items:center;gap:10px;color:#fff;min-width:0}
+        .hbrand .ico{width:32px;height:32px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .hbrand .ico i{color:#fff;font-size:14px}
+        .hbrand h1{font-size:15px;font-weight:700;white-space:nowrap}
+        .hmeta{text-align:right;flex-shrink:0}
+        .hmeta p{font-size:11px;color:#94a3b8;line-height:1.5}
+        .hmeta strong{color:#cbd5e1}
+
+        /* Config button */
+        #btn-cfg{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:600;font-family:inherit;padding:6px 11px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:background .15s;flex-shrink:0}
+        #btn-cfg:hover{background:rgba(255,255,255,.2)}
+        #btn-cfg.connected{border-color:#22c55e;color:#86efac}
+
+        /* CONFIG MODAL */
+        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center}
+        .modal-overlay.hidden{display:none}
+        .modal-box{background:var(--surface);border-radius:14px;padding:24px;width:460px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+        .modal-box h2{font-size:16px;font-weight:700;margin-bottom:4px}
+        .modal-box p{font-size:12px;color:var(--ts);margin-bottom:16px;line-height:1.6}
+        .modal-box ol{font-size:12px;color:var(--ts);padding-left:18px;line-height:2.2;margin-bottom:16px}
+        .modal-box ol code{font-family:'DM Mono',monospace;font-size:11px;background:var(--bg);padding:1px 5px;border-radius:4px}
+        .url-input-row{display:flex;gap:8px}
+        .url-input-row input{flex:1;padding:9px 11px;font-size:13px;font-family:'DM Mono',monospace;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--bg);color:var(--tp)}
+        .url-input-row input:focus{border-color:var(--blue-m);background:#fff}
+
+        /* LAYOUT */
+        .layout{display:flex;flex:1;overflow:hidden}
+
+        /* SIDEBAR */
+        .sidebar{width:var(--sw);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;z-index:10}
+        .tabs{display:flex;border-bottom:1px solid var(--border)}
+        .tab-btn{flex:1;padding:10px 0;font-size:12px;font-weight:600;font-family:inherit;background:none;border:none;cursor:pointer;color:var(--tm);border-bottom:2px solid transparent;transition:all .15s}
+        .tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-l)}
+
+        /* Search */
+        .srch{padding:11px 12px;border-bottom:1px solid var(--border)}
+        .srch .inner{position:relative}
+        .srch i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--tm);font-size:13px}
+        .srch input{width:100%;padding:8px 10px 8px 32px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--bg);color:var(--tp);transition:border-color .15s}
+        .srch input:focus{border-color:var(--blue-m);background:#fff}
+
+        /* Stats */
+        #stats{padding:5px 14px;border-bottom:1px solid var(--border);display:flex;gap:14px;background:var(--bg);align-items:center}
+        .schip{font-size:11px;color:var(--tm);display:flex;align-items:center;gap:4px}
+        .schip strong{color:var(--tp)}
+        #refresh-btn{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--tm);font-size:12px;padding:2px 6px;border-radius:6px;font-family:inherit;display:flex;align-items:center;gap:4px}
+        #refresh-btn:hover{color:var(--blue);background:var(--blue-l)}
+
+        /* Bank list */
+        #bank-list{flex:1;overflow-y:auto}
+        #bank-list::-webkit-scrollbar{width:4px}
+        #bank-list::-webkit-scrollbar-thumb{background:var(--border-s);border-radius:4px}
+
+        .bitem{padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;display:flex;align-items:flex-start;gap:10px}
+        .bitem:hover{background:var(--bg)}
+        .bitem.active{background:var(--blue-l);border-left:3px solid var(--blue)}
+        .bico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;margin-top:1px}
+        .bico.bpr{background:var(--blue-l);color:var(--blue)}
+        .bico.bprs{background:var(--green-l);color:var(--green)}
+        .binfo{flex:1;min-width:0}
+        .bname{font-size:13px;font-weight:600;color:var(--tp);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .bcity{font-size:11px;color:var(--tm);margin-top:2px}
+        .badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.05em;flex-shrink:0;margin-top:2px}
+        .badge-bpr{background:var(--blue-l);color:var(--blue)}
+        .badge-bprs{background:var(--green-l);color:var(--green)}
+
+        /* Skeleton */
+        .skel{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center}
+        .skel-b{background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%);background-size:200% 100%;animation:shim 1.2s infinite;border-radius:6px}
+        @keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+        /* Empty state */
+        .empty{padding:32px 20px;text-align:center;color:var(--tm)}
+        .empty i{font-size:32px;margin-bottom:10px;display:block;opacity:.4}
+        .empty p{font-size:13px;line-height:1.6}
+
+        /* ADD TAB */
+        #tab-add{display:none;flex:1;overflow-y:auto;padding:14px}
+        #tab-add.visible{display:block}
+        .warn-no-sheet{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#92400e;display:flex;gap:8px;align-items:flex-start}
+        .warn-no-sheet i{flex-shrink:0;margin-top:1px}
+
+        .fg{margin-bottom:11px}
+        .fg label{display:block;font-size:11px;font-weight:600;color:var(--ts);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+        .fg input,.fg select{width:100%;padding:8px 10px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--bg);color:var(--tp);transition:border-color .15s}
+        .fg input:focus,.fg select:focus{border-color:var(--blue-m);background:#fff}
+        .fg input.mono{font-family:'DM Mono',monospace;font-size:12px}
+
+        .gmrow{display:flex;gap:6px;margin-bottom:11px}
+        .gmrow input{flex:1;padding:8px 10px;font-size:12px;font-family:'DM Mono',monospace;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--bg);color:var(--tp)}
+        .gmrow input:focus{border-color:var(--blue-m);background:#fff}
+
+        .btn{padding:8px 14px;font-size:12px;font-weight:600;font-family:inherit;border-radius:8px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+        .btn-primary{background:var(--blue);color:#fff}
+        .btn-primary:hover{background:#1740c0}
+        .btn-secondary{background:var(--bg);color:var(--ts);border:1px solid var(--border)}
+        .btn-secondary:hover{background:var(--border)}
+        .btn-green{background:var(--green);color:#fff}
+        .btn-green:hover{background:#166534}
+        .btn-full{width:100%;justify-content:center}
+        .btn:disabled{opacity:.6;cursor:not-allowed}
+
+        .smsg{font-size:11px;margin:4px 0 8px;min-height:16px;color:var(--tm)}
+        .smsg.ok{color:var(--green)}
+        .smsg.err{color:var(--red)}
+        .smsg.warn{color:var(--amber)}
+
+        .divider{display:flex;align-items:center;gap:8px;margin:12px 0;font-size:11px;color:var(--tm)}
+        .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+        /* MAP */
+        #map{flex:1;z-index:1}
+
+        /* DETAIL PANEL */
+        #detail-panel{position:absolute;bottom:20px;left:calc(var(--sw) + 14px);right:14px;background:var(--surface);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.15);padding:16px 18px;z-index:1000;border:1px solid var(--border);display:none}
+        #detail-panel.visible{display:block}
+        .dp-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+        .dp-name{font-size:17px;font-weight:700;color:var(--tp);margin-top:3px}
+        .dp-addr{font-size:12px;color:var(--ts);margin-top:4px;display:flex;gap:6px}
+        .dp-actions{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+        .btn-x{background:none;border:none;cursor:pointer;color:var(--tm);font-size:16px;padding:4px;border-radius:6px}
+        .btn-x:hover{background:var(--bg);color:var(--tp)}
+    </style>
+</head>
+<body>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay hidden" id="cfg-modal">
+    <div class="modal-box">
+        <h2><i class="fa-brands fa-google" style="margin-right:8px;color:#4285F4"></i>Hubungkan Google Sheets</h2>
+        <p>Deploy Google Apps Script sebagai Web App, lalu tempel URL-nya di bawah. Data akan disimpan & dibaca langsung dari Spreadsheet Anda.</p>
+        <ol>
+            <li>Buka Google Sheets → <code>Extensions → Apps Script</code></li>
+            <li>Paste kode dari file <code>AppsScript_BPR_Sheets.gs</code></li>
+            <li><code>Deploy → New deployment → Web App</code></li>
+            <li>Execute as: <code>Me</code> &nbsp;|&nbsp; Who has access: <code>Anyone</code></li>
+            <li>Salin URL deployment → tempel di bawah</li>
+        </ol>
+        <label style="font-size:11px;font-weight:600;color:var(--ts);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Web App URL</label>
+        <div class="url-input-row">
+            <input type="text" id="cfg-url-input" placeholder="https://script.google.com/macros/s/..." />
+            <button class="btn btn-primary" onclick="saveConfig()"><i class="fa-solid fa-link"></i> Hubungkan</button>
+        </div>
+        <div class="smsg" id="cfg-status" style="margin-top:6px"></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn btn-secondary" onclick="closeConfig()" style="flex:1">Batal</button>
+            <button class="btn btn-secondary" onclick="clearConfig()" style="flex:1;color:var(--red)"><i class="fa-solid fa-trash"></i> Reset Koneksi</button>
+        </div>
+    </div>
+</div>
+
+<header>
+    <div class="hbrand">
+        <div class="ico"><i class="fa-solid fa-building-columns"></i></div>
+        <h1>Direktori BPR & BPRS Jawa Tengah</h1>
+    </div>
+    <button id="btn-cfg" onclick="openConfig()">
+        <i class="fa-solid fa-table-cells" id="cfg-ico"></i>
+        <span id="cfg-label">Hubungkan Sheets</span>
+    </button>
+    <div class="hmeta">
+        <p>Sumber: <strong>Perbarindo DPD Jateng</strong></p>
+        <p>Update: <strong>Mei 2026</strong></p>
+    </div>
+</header>
+
+<div class="layout">
+    <aside class="sidebar">
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-btn-list" onclick="switchTab('list')">
+                <i class="fa-solid fa-list"></i> Daftar Bank
+            </button>
+            <button class="tab-btn" id="tab-btn-add" onclick="switchTab('add')">
+                <i class="fa-solid fa-plus"></i> Tambah Data
+            </button>
+        </div>
+
+        <!-- LIST TAB -->
+        <div id="tab-list" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+            <div class="srch">
+                <div class="inner">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="search" placeholder="Cari nama bank atau kota..." oninput="filterBank()">
+                </div>
+            </div>
+            <div id="stats">
+                <div class="schip"><strong id="s-total">0</strong> bank</div>
+                <div class="schip" style="color:var(--blue)"><strong id="s-bpr">0</strong> BPR</div>
+                <div class="schip" style="color:var(--green)"><strong id="s-bprs">0</strong> BPRS</div>
+                <button id="refresh-btn" onclick="loadFromSheet()" title="Refresh dari Sheets">
+                    <i class="fa-solid fa-arrows-rotate" id="refresh-ico"></i> Refresh
+                </button>
+            </div>
+            <div id="bank-list"></div>
+        </div>
+
+        <!-- ADD TAB -->
+        <div id="tab-add">
+            <div class="warn-no-sheet" id="warn-no-sheet" style="display:none">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Belum terhubung ke Google Sheets. Data hanya tersimpan sementara. <a href="#" onclick="openConfig();return false" style="color:var(--amber);font-weight:600;">Hubungkan sekarang →</a></span>
+            </div>
+
+            <label style="font-size:11px;font-weight:600;color:var(--ts);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block">Google Maps Link</label>
+            <div class="gmrow">
+                <input type="text" id="gmaps-input" placeholder="https://maps.google.com/maps/place/..."/>
+                <button class="btn btn-secondary" onclick="parseGmaps()" id="parse-btn">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Parse
+                </button>
+            </div>
+            <div class="smsg" id="parse-status"></div>
+
+            <div class="divider">atau isi manual</div>
+
+            <div class="fg">
+                <label>Nama Bank</label>
+                <input type="text" id="f-name" placeholder="PT BPR ..."/>
+            </div>
+            <div class="fg">
+                <label>Tipe</label>
+                <select id="f-type"><option value="BPR">BPR</option><option value="BPRS">BPRS</option></select>
+            </div>
+            <div class="fg">
+                <label>City / Kota</label>
+                <input type="text" id="f-city" placeholder="Semarang"/>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
+                <div class="fg" style="margin:0">
+                    <label>Latitude</label>
+                    <input type="text" id="f-lat" class="mono" placeholder="-7.0000"/>
+                </div>
+                <div class="fg" style="margin:0">
+                    <label>Longitude</label>
+                    <input type="text" id="f-lng" class="mono" placeholder="110.0000"/>
+                </div>
+            </div>
+            <div class="fg">
+                <label>Alamat</label>
+                <input type="text" id="f-address" placeholder="Jl. ..."/>
+            </div>
+            <div class="fg">
+                <label>Website</label>
+                <input type="text" id="f-web" placeholder="https://..."/>
+            </div>
+
+            <button class="btn btn-green btn-full" id="btn-add-bank" onclick="addBank()">
+                <i class="fa-solid fa-floppy-disk"></i> Simpan ke Spreadsheet
+            </button>
+            <div class="smsg" id="add-status"></div>
+
+            <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+                <p style="font-size:11px;color:var(--tm);margin-bottom:5px;font-weight:600">Format link yang didukung:</p>
+                <ul style="font-size:11px;color:var(--tm);padding-left:14px;line-height:2.1">
+                    <li><code style="font-family:'DM Mono',monospace">maps.google.com/maps/place/...@lat,lng</code></li>
+                    <li><code style="font-family:'DM Mono',monospace">google.com/maps/@lat,lng,z</code></li>
+                    <li><code style="font-family:'DM Mono',monospace">google.com/maps?q=lat,lng</code></li>
+                </ul>
+                <p style="font-size:11px;color:var(--tm);margin-top:5px">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:var(--amber)"></i>
+                    Link pendek (goo.gl): buka di browser → salin URL panjang dari address bar.
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    <main style="flex:1;position:relative">
+        <div id="map"></div>
+
+        <div id="detail-panel">
+            <div class="dp-head">
+                <div>
+                    <span id="d-type" class="badge"></span>
+                    <div class="dp-name" id="d-name"></div>
+                    <div class="dp-addr">
+                        <i class="fa-solid fa-location-dot" style="color:#ef4444;margin-top:2px;flex-shrink:0"></i>
+                        <span id="d-addr-text"></span>
+                    </div>
+                </div>
+                <button class="btn-x" onclick="closeDetail()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="dp-actions">
+                <a id="d-web" href="#" target="_blank" class="btn btn-primary">
+                    <i class="fa-solid fa-earth-asia"></i> Website
+                </a>
+                <a id="d-maps" href="#" target="_blank" class="btn btn-green">
+                    <i class="fa-solid fa-map-location-dot"></i> Google Maps
+                </a>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+// ============================================================
+//  CONFIG — simpan URL di localStorage agar tidak hilang
+// ============================================================
+let WEBAPP_URL = localStorage.getItem("bpr_webapp_url") || "";
+let bankData   = [];
+let map, markers = [];
+
+function updateCfgButton() {
+    const btn   = document.getElementById("btn-cfg");
+    const label = document.getElementById("cfg-label");
+    const ico   = document.getElementById("cfg-ico");
+    if (WEBAPP_URL) {
+        btn.classList.add("connected");
+        label.textContent = "Sheets Terhubung";
+        ico.className = "fa-solid fa-circle-check";
+    } else {
+        btn.classList.remove("connected");
+        label.textContent = "Hubungkan Sheets";
+        ico.className = "fa-solid fa-table-cells";
+    }
+}
+
+function openConfig() {
+    document.getElementById("cfg-url-input").value = WEBAPP_URL;
+    document.getElementById("cfg-status").textContent = "";
+    document.getElementById("cfg-modal").classList.remove("hidden");
+}
+function closeConfig() {
+    document.getElementById("cfg-modal").classList.add("hidden");
+}
+async function saveConfig() {
+    const url = document.getElementById("cfg-url-input").value.trim();
+    const st  = document.getElementById("cfg-status");
+    if (!url) { setStatus(st,"Masukkan URL terlebih dahulu.","err"); return; }
+    st.className = "smsg"; st.textContent = "Mengecek koneksi...";
+    try {
+        const res  = await fetch(url);
+        const json = await res.json();
+        if (json.status === "ok") {
+            WEBAPP_URL = url;
+            localStorage.setItem("bpr_webapp_url", url);
+            setStatus(st,"✓ Berhasil terhubung! Memuat data...","ok");
+            updateCfgButton();
+            setTimeout(() => { closeConfig(); loadFromSheet(); }, 900);
+        } else {
+            setStatus(st,"Respons tidak sesuai. Pastikan script sudah di-deploy dengan benar.","err");
+        }
+    } catch(e) {
+        setStatus(st,"Gagal terhubung: " + e.message,"err");
+    }
+}
+function clearConfig() {
+    WEBAPP_URL = "";
+    localStorage.removeItem("bpr_webapp_url");
+    updateCfgButton();
+    document.getElementById("cfg-status").textContent = "";
+    document.getElementById("cfg-url-input").value = "";
+    setStatus(document.getElementById("cfg-status"),"Koneksi direset. Data fallback dipakai.","warn");
+}
+
+// ============================================================
+//  DATA — fallback statis jika belum ada Sheets
+// ============================================================
+const FALLBACK = [
+    { name:"PT Arthapuspa Mega", type:"BPR", city:"Tegal", lat:-6.9508810836328845, lng:109.13761511391706, address:"Jl. Raya Selatan No.21, Kemayaran, Tembok Banjaran, Kec. Adiwerna, Kabupaten Tegal", web:"https://arthapuspamega.com" },
+    { name:"PT Nusamba Cepiring", type:"BPR", city:"Kendal", lat:-6.93513627374289, lng:110.1393953407404, address:"Jl. Raya Gondang, RT.04/RW.03, Pencarikan, Gondang, Kec. Cepiring, Kab.Kendal", web:"https://nusambacepiring.com" },
+    { name:"PT BPR Catur Artha Jaya", type:"BPR", city:"Kudus", lat:-6.811613017616023, lng:110.84702788164327, address:"Jl. Johar Kelurahan No.107, Wergu Wetan, Kec. Kota Kudus, Kab.Kudus", web:"https://bprcaturartha.com" },
+    { name:"PT BPR Citra Darian", type:"BPR", city:"Weleri", lat:-6.96215152856232, lng:110.25675795896035, address:"Jl. Raya Timur Kaliwungu No.74, Gadukan, Kutoharjo, Kec. Kaliwungu, Kab.Kendal", web:"https://www.bprcitradarian.co.id" },
+    { name:"PT BPR Jateng", type:"BPR", city:"Semarang", lat:-6.982635, lng:110.430030, address:"Jl. Kartini No. 11, Semarang", web:"https://bprjateng.co.id" },
+    { name:"PT BPRS Kedung Arto", type:"BPRS", city:"Semarang", lat:-7.001221, lng:110.435012, address:"Jl. MT Haryono No. 811, Semarang", web:"https://bprskedungarto.co.id" },
+    { name:"PT BPR Bank Daerah Kendal (Perseroda)", type:"BPR", city:"Kendal", lat:-6.918912, lng:110.203345, address:"Jl. Soekarno-Hatta No. 24, Kendal", web:"https://bankdaerahkendal.co.id" },
+    { name:"PT BPR Bank Solo (Perseroda)", type:"BPR", city:"Surakarta", lat:-7.566670, lng:110.816670, address:"Jl. Slamet Riyadi No. 131, Surakarta", web:"https://banksolo.co.id" },
+    { name:"PT BPR Bank Daerah Karanganyar", type:"BPR", city:"Karanganyar", lat:-7.594612, lng:110.952512, address:"Jl. Lawu No. 46, Karanganyar", web:"https://bankdaerah.co.id" },
+    { name:"PT BPRS Sukowati Sragen", type:"BPRS", city:"Sragen", lat:-7.426670, lng:111.022220, address:"Jl. Raya Sukowati No. 20, Sragen", web:"https://banksyariahsragen.com" },
+    { name:"PT BPR Bank Boyolali (Perseroda)", type:"BPR", city:"Boyolali", lat:-7.533330, lng:110.595550, address:"Jl. Pandanaran No. 125, Boyolali", web:"https://bankboyolali.co.id" },
+    { name:"PT BPR BKK Purwokerto (Perseroda)", type:"BPR", city:"Banyumas", lat:-7.424440, lng:109.230770, address:"Jl. Gerilya No. 12, Purwokerto", web:"https://bprbkkpurwokerto.co.id" },
+    { name:"PT BPR Arto Moro", type:"BPR", city:"Semarang", lat:-7.012543, lng:110.455012, address:"Jl. Elang Raya No. 92, Mangunharjo, Semarang", web:"https://bprartomoro.com" }
+];
+
+// ============================================================
+//  LOAD DATA dari Sheets (GET) atau fallback
+// ============================================================
+async function loadFromSheet() {
+    const ico = document.getElementById("refresh-ico");
+    ico.classList.add("fa-spin");
+    showSkeleton();
+
+    if (WEBAPP_URL) {
+        try {
+            const res  = await fetch(WEBAPP_URL + "?t=" + Date.now());
+            const json = await res.json();
+            if (json.status === "ok" && Array.isArray(json.data)) {
+                bankData = json.data.filter(b => b.lat && b.lng && b.name);
+                if (bankData.length === 0) {
+                    // Sheet kosong — seed dengan fallback agar tidak blank
+                    bankData = FALLBACK;
+                }
+                renderAll();
+                ico.classList.remove("fa-spin");
+                return;
+            }
+        } catch(e) {
+            console.warn("Sheets load error:", e);
+        }
+    }
+
+    // Fallback ke data statis
+    bankData = FALLBACK;
+    renderAll();
+    ico.classList.remove("fa-spin");
+}
+
+// ============================================================
+//  MAP
+// ============================================================
+function initMap() {
+    map = L.map("map").setView([-7.15097, 110.140259], 8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+    updateCfgButton();
+    loadFromSheet();
+}
+
+function renderAll() {
+    const q = document.getElementById("search").value.toLowerCase();
+    const filtered = q
+        ? bankData.filter(b => b.name.toLowerCase().includes(q) || b.city.toLowerCase().includes(q))
+        : bankData;
+    renderList(filtered);
+    renderMarkers(filtered);
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById("s-total").textContent = bankData.length;
+    document.getElementById("s-bpr").textContent   = bankData.filter(b=>b.type==="BPR").length;
+    document.getElementById("s-bprs").textContent  = bankData.filter(b=>b.type==="BPRS").length;
+}
+
+function showSkeleton() {
+    const list = document.getElementById("bank-list");
+    list.innerHTML = Array(6).fill(`
+        <div class="skel">
+            <div class="skel-b" style="width:34px;height:34px;border-radius:8px;flex-shrink:0"></div>
+            <div style="flex:1">
+                <div class="skel-b" style="height:13px;width:80%;margin-bottom:6px"></div>
+                <div class="skel-b" style="height:11px;width:45%"></div>
+            </div>
+        </div>`).join("");
+}
+
+function renderList(data) {
+    const list = document.getElementById("bank-list");
+    if (data.length === 0) {
+        list.innerHTML = `<div class="empty"><i class="fa-solid fa-building-circle-xmark"></i><p>Tidak ada bank ditemukan.</p></div>`;
+        return;
+    }
+    list.innerHTML = "";
+    data.forEach(bank => {
+        const idx = bankData.indexOf(bank);
+        const el  = document.createElement("div");
+        el.className = "bitem";
+        el.id = "bi-" + idx;
+        el.innerHTML = `
+            <div class="bico ${bank.type.toLowerCase()}"><i class="fa-solid fa-building-columns"></i></div>
+            <div class="binfo">
+                <div class="bname">${bank.name}</div>
+                <div class="bcity"><i class="fa-solid fa-location-dot" style="margin-right:3px"></i>${bank.city}</div>
+            </div>
+            <span class="badge badge-${bank.type.toLowerCase()}">${bank.type}</span>`;
+        el.onclick = () => selectBank(bank, idx);
+        list.appendChild(el);
+    });
+}
+
+function renderMarkers(data) {
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    data.forEach(bank => {
+        const idx = bankData.indexOf(bank);
+        const clr = bank.type === "BPRS" ? "#15803d" : "#1d4ed8";
+        const icon = L.divIcon({
+            className: "",
+            html: `<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${clr};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>`,
+            iconSize:[26,26], iconAnchor:[13,26]
+        });
+        const m = L.marker([bank.lat, bank.lng], {icon}).addTo(map);
+        m.on("click", () => selectBank(bank, idx));
+        markers.push(m);
+    });
+}
+
+function selectBank(bank, idx) {
+    map.flyTo([bank.lat, bank.lng], 15, {duration:1.2});
+    document.querySelectorAll(".bitem").forEach(el => el.classList.remove("active"));
+    const item = document.getElementById("bi-" + idx);
+    if (item) { item.classList.add("active"); item.scrollIntoView({block:"nearest"}); }
+
+    const panel = document.getElementById("detail-panel");
+    panel.classList.add("visible");
+    document.getElementById("d-name").textContent = bank.name;
+    const typeEl = document.getElementById("d-type");
+    typeEl.textContent = bank.type;
+    typeEl.className = "badge badge-" + bank.type.toLowerCase();
+    document.getElementById("d-addr-text").textContent = bank.address || "Alamat tidak tersedia";
+    document.getElementById("d-web").href  = bank.web || "#";
+    document.getElementById("d-maps").href = `https://www.google.com/maps/search/?api=1&query=${bank.lat},${bank.lng}`;
+}
+
+function closeDetail() {
+    document.getElementById("detail-panel").classList.remove("visible");
+    document.querySelectorAll(".bitem").forEach(el => el.classList.remove("active"));
+}
+
+function filterBank() { renderAll(); }
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(tab) {
+    const isAdd = tab === "add";
+    document.getElementById("tab-list").style.display = isAdd ? "none" : "flex";
+    document.getElementById("tab-add").classList.toggle("visible", isAdd);
+    document.getElementById("tab-btn-list").classList.toggle("active", !isAdd);
+    document.getElementById("tab-btn-add").classList.toggle("active", isAdd);
+    const warn = document.getElementById("warn-no-sheet");
+    if (warn) warn.style.display = (isAdd && !WEBAPP_URL) ? "flex" : "none";
+}
+
+// ============================================================
+//  PARSE GOOGLE MAPS LINK
+// ============================================================
+async function parseGmaps() {
+    const raw = document.getElementById("gmaps-input").value.trim();
+    const st  = document.getElementById("parse-status");
+    if (!raw) { setStatus(st,"Masukkan link Google Maps terlebih dahulu.","err"); return; }
+    if (raw.includes("goo.gl") || raw.includes("maps.app.goo.gl")) {
+        setStatus(st,"Link pendek — buka di browser, salin URL panjang dari address bar, lalu paste di sini.","warn");
+        return;
+    }
+    setStatus(st,"Memproses koordinat...","");
+
+    let lat = null, lng = null, placeName = "";
+    const atMatch = raw.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (atMatch) { lat = parseFloat(atMatch[1]); lng = parseFloat(atMatch[2]); }
+    const qMatch  = raw.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (!lat && qMatch) { lat = parseFloat(qMatch[1]); lng = parseFloat(qMatch[2]); }
+    const llMatch = raw.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (!lat && llMatch) { lat = parseFloat(llMatch[1]); lng = parseFloat(llMatch[2]); }
+
+    try {
+        const u = new URL(raw);
+        const parts = u.pathname.split("/");
+        const pi = parts.indexOf("place");
+        if (pi !== -1 && parts[pi+1]) placeName = decodeURIComponent(parts[pi+1]).replace(/\+/g," ");
+        if (!placeName) { const q = u.searchParams.get("q"); if (q && isNaN(parseFloat(q))) placeName = q; }
+    } catch(e) {}
+
+    if (!lat) { setStatus(st,"Koordinat tidak ditemukan. Pastikan URL mengandung @lat,lng.","err"); return; }
+
+    document.getElementById("f-lat").value = lat;
+    document.getElementById("f-lng").value = lng;
+    setStatus(st,"Koordinat ditemukan. Mengidentifikasi kota & alamat via AI...","");
+
+    try {
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({
+                model:"claude-sonnet-4-20250514",
+                max_tokens:300,
+                messages:[{
+                    role:"user",
+                    content:`Koordinat: lat=${lat}, lng=${lng} di Jawa Tengah Indonesia. Nama tempat dari URL: "${placeName}".
+Jawab HANYA dengan JSON (tanpa markdown):
+{"city":"nama kota/kabupaten terdekat","address":"alamat lengkap, kosong jika tidak tahu"}`
+                }]
+            })
+        });
+        const data = await resp.json();
+        const txt  = data.content?.map(i => i.text||"").join("");
+        const p    = JSON.parse(txt.replace(/```json|```/g,"").trim());
+        if (p.city)    document.getElementById("f-city").value    = p.city;
+        if (p.address) document.getElementById("f-address").value = p.address;
+        setStatus(st,"✓ Koordinat, kota, dan alamat berhasil diisi. Periksa sebelum menyimpan.","ok");
+    } catch(e) {
+        setStatus(st,"✓ Koordinat diisi. Lengkapi city dan address secara manual.","ok");
+    }
+}
+
+// ============================================================
+//  ADD BANK — POST ke Google Sheets
+// ============================================================
+async function addBank() {
+    const st      = document.getElementById("add-status");
+    const name    = document.getElementById("f-name").value.trim();
+    const type    = document.getElementById("f-type").value;
+    const city    = document.getElementById("f-city").value.trim();
+    const lat     = parseFloat(document.getElementById("f-lat").value);
+    const lng     = parseFloat(document.getElementById("f-lng").value);
+    const address = document.getElementById("f-address").value.trim();
+    const web     = document.getElementById("f-web").value.trim();
+
+    if (!name || !city || isNaN(lat) || isNaN(lng)) {
+        setStatus(st,"Nama, city, lat, dan lng wajib diisi.","err"); return;
+    }
+
+    const btn = document.getElementById("btn-add-bank");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menyimpan...';
+
+    const payload = {action:"add", name, type, city, lat, lng, address, web};
+
+    if (WEBAPP_URL) {
+        try {
+            const res  = await fetch(WEBAPP_URL, {method:"POST", body:JSON.stringify(payload)});
+            const json = await res.json();
+            if (json.status === "ok") {
+                setStatus(st,"✓ Data berhasil disimpan ke Google Sheets!","ok");
+                clearForm();
+                await loadFromSheet();
+                const nb = bankData.find(b => b.name === name);
+                if (nb) { switchTab("list"); setTimeout(() => selectBank(nb, bankData.indexOf(nb)), 500); }
+            } else {
+                setStatus(st,"Gagal: " + (json.message || "error tidak diketahui."),"err");
+            }
+        } catch(e) {
+            setStatus(st,"Gagal mengirim ke Sheets: " + e.message,"err");
+        }
+    } else {
+        // Simpan sementara di memori
+        bankData.push({name,type,city,lat,lng,address,web});
+        renderAll();
+        setStatus(st,"⚠ Tersimpan sementara (tidak terhubung ke Sheets). Hubungkan Sheets agar data permanen.","warn");
+        clearForm();
+        switchTab("list");
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan ke Spreadsheet';
+}
+
+function clearForm() {
+    ["f-name","f-city","f-lat","f-lng","f-address","f-web","gmaps-input"].forEach(id => {
+        document.getElementById(id).value = "";
+    });
+    document.getElementById("f-type").value = "BPR";
+    document.getElementById("parse-status").textContent = "";
+}
+
+function setStatus(el, msg, type) {
+    el.textContent = msg;
+    el.className   = "smsg" + (type ? " "+type : "");
+}
+
+window.onload = initMap;
+</script>
+</body>
+</html>
