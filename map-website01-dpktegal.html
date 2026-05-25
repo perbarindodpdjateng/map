@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peta BPR & BPRS Jawa Tengah - Data Akurat</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        #map { height: 100%; width: 100%; z-index: 1; }
+        .sidebar-item:hover { background-color: #f8fafc; cursor: pointer; }
+        .active-bank { border-left: 4px solid #2563eb; background-color: #eff6ff; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+
+    <!-- Header -->
+    <nav class="bg-blue-900 text-white p-4 shadow-md flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-building-columns text-2xl"></i>
+            <h1 class="text-xl font-bold">Direktori BPR-BPRS Jawa Tengah</h1>
+        </div>
+        <div class="text-xs text-blue-200 text-right">
+            Sumber Data : Perbarindo DPD Jawa Tengah<br>
+            <span class="italic">Update: Mei 2026</span>
+        </div>
+    </nav>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-1/3 bg-white border-r flex flex-col shadow-lg z-10">
+            <div class="p-4 border-b">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400"></i>
+                    <input type="text" id="search" placeholder="Cari Nama Bank atau Kota..." 
+                        class="w-full pl-10 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" onkeyup="filterBank()">
+                </div>
+            </div>
+            
+            <div id="bank-list" class="flex-1 overflow-y-auto custom-scroll">
+                <!-- List bank akan muncul di sini -->
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 relative flex flex-col">
+            <div id="map"></div>
+            
+            <!-- Detail Panel (Floating) -->
+            <div id="detail-panel" class="absolute bottom-6 left-6 right-6 bg-white rounded-xl shadow-2xl p-6 z-[1000] hidden border-t-4 border-blue-600">
+                <div class="flex flex-col md:flex-row justify-between gap-4">
+                    <div class="flex-1">
+                        <span id="d-type" class="text-[10px] font-bold px-2 py-1 rounded-full uppercase mb-2 inline-block"></span>
+                        <h2 id="d-name" class="text-2xl font-bold text-gray-800"></h2>
+                        <p id="d-address" class="text-gray-600 text-sm mt-1 flex items-start">
+                            <i class="fa-solid fa-location-dot mt-1 mr-2 text-red-500"></i>
+                            <span id="d-address-text"></span>
+                        </p>
+                    </div>
+                    <div class="flex flex-col gap-2 min-w-[200px]">
+                        <!-- Tombol Website -->
+                        <a id="d-web" href="#" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded text-center text-sm font-bold hover:bg-blue-700 transition-colors">
+                            <i class="fa-solid fa-earth-asia mr-2"></i>Kunjungi Website
+                        </a>
+                        <!-- Tombol Ke Lokasi (Google Maps) -->
+                        <a id="d-maps" href="#" target="_blank" class="bg-green-600 text-white px-4 py-2 rounded text-center text-sm font-bold hover:bg-green-700 transition-colors">
+                            <i class="fa-solid fa-map-location-dot mr-2"></i>Ke Lokasi
+                        </a>
+                        <button onclick="closeDetail()" class="text-gray-400 text-xs hover:text-gray-600 underline">Tutup Panel</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const bankData = [
+            {
+                name: "PT Arthapuspa Mega",
+                type: "BPR",
+                city: "Tegal",
+                lat: -6.9508810836328845,
+                lng: 109.13761511391706,
+                address: "Jl. Raya Selatan No.21, Kemayaran, Tembok Banjaran, Kec. Adiwerna, Kabupaten Tegal",
+                web: "https://arthapuspamega.com"
+            },
+            {
+                name: "PT Nusamba Cepiring",
+                type: "BPR",
+                city: "Kendal",
+                lat: -6.93513627374289,
+                lng: 110.1393953407404,
+                address: "Jl. Raya Gondang, RT.04/RW.03, Pencarikan, Gondang, Kec. Cepiring, Kab.Kendal",
+                web: "https://nusambacepiring.com"
+            },
+            {
+                name: "PT BPR Catur Artha Jaya",
+                type: "BPR",
+                city: "Kudus",
+                lat: -6.811613017616023,
+                lng: 110.84702788164327,
+                address: "Jl. Johar Kelurahan No.107, Wergu Wetan, Kec. Kota Kudus, Kab.Kudus",
+                web: "https://bprcaturartha.com"
+            },
+            {
+                name: "PT BPR Citra Darian",
+                type: "BPR",
+                city: "Weleri",
+                lat: -6.96215152856232,
+                lng: 110.25675795896035,
+                address: "Jl. Raya Timur Kaliwungu No.74, Gadukan, Kutoharjo, Kec. Kaliwungu, Kab.Kendal",
+                web: "https://www.bprcitradarian.co.id"
+            },
+            {
+                name: "PT BPR Jateng",
+                type: "BPR",
+                city: "Semarang",
+                lat: -6.982635,
+                lng: 110.430030,
+                address: "Jl. Kartini No. 11, Semarang",
+                web: "https://bprjateng.co.id"
+            },
+            {
+                name: "PT BPRS Kedung Arto",
+                type: "BPRS",
+                city: "Semarang",
+                lat: -7.001221,
+                lng: 110.435012,
+                address: "Jl. MT Haryono No. 811, Semarang",
+                web: "https://bprskedungarto.co.id"
+            },
+            {
+                name: "PT BPR Bank Daerah Kendal (Perseroda)",
+                type: "BPR",
+                city: "Kendal",
+                lat: -6.918912,
+                lng: 110.203345,
+                address: "Jl. Soekarno-Hatta No. 24, Kendal",
+                web: "https://bankdaerahkendal.co.id"
+            },
+            {
+                name: "PT BPR Bank Solo (Perseroda)",
+                type: "BPR",
+                city: "Surakarta",
+                lat: -7.566670,
+                lng: 110.816670,
+                address: "Jl. Slamet Riyadi No. 131, Surakarta",
+                web: "https://banksolo.co.id"
+            },
+            {
+                name: "PT BPR Bank Daerah Karanganyar",
+                type: "BPR",
+                city: "Karanganyar",
+                lat: -7.594612,
+                lng: 110.952512,
+                address: "Jl. Lawu No. 46, Karanganyar",
+                web: "https://bankdaerah.co.id"
+            },
+            {
+                name: "PT BPRS Sukowati Sragen",
+                type: "BPRS",
+                city: "Sragen",
+                lat: -7.426670,
+                lng: 111.022220,
+                address: "Jl. Raya Sukowati No. 20, Sragen",
+                web: "https://banksyariahsragen.com"
+            },
+            {
+                name: "PT BPR Bank Boyolali (Perseroda)",
+                type: "BPR",
+                city: "Boyolali",
+                lat: -7.533330,
+                lng: 110.595550,
+                address: "Jl. Pandanaran No. 125, Boyolali",
+                web: "https://bankboyolali.co.id"
+            },
+            {
+                name: "PT BPR BKK Purwokerto (Perseroda)",
+                type: "BPR",
+                city: "Banyumas",
+                lat: -7.424440,
+                lng: 109.230770,
+                address: "Jl. Gerilya No. 12, Purwokerto",
+                web: "https://bprbkkpurwokerto.co.id"
+            },
+            {
+                name: "PT BPR Arto Moro",
+                type: "BPR",
+                city: "Semarang",
+                lat: -7.012543, 
+                lng: 110.455012,
+                address: "Jl. Elang Raya No. 92, Mangunharjo, Semarang",
+                web: "https://bprartomoro.com"
+            }
+        ];
+
+        let map, markers = [];
+
+        function initMap() {
+            map = L.map('map').setView([-7.150970, 110.140259], 8);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            renderList(bankData);
+        }
+
+        function renderList(data) {
+            const listDiv = document.getElementById('bank-list');
+            listDiv.innerHTML = '';
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            data.forEach((bank, index) => {
+                // Tambah ke Sidebar
+                const item = document.createElement('div');
+                item.className = 'sidebar-item p-4 border-b transition-all';
+                item.id = `bank-item-${index}`;
+                item.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h4 class="font-bold text-gray-800 text-sm">${bank.name}</h4>
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded ${bank.type === 'BPR' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}">${bank.type}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-city mr-1"></i> ${bank.city}</p>
+                `;
+                item.onclick = () => selectBank(bank, index);
+                listDiv.appendChild(item);
+
+                // Tambah Marker
+                const markerColor = bank.type === "BPRS" ? "hue-rotate(140deg)" : "none";
+                const marker = L.marker([bank.lat, bank.lng]).addTo(map);
+                marker._icon.style.filter = markerColor;
+                marker.on('click', () => selectBank(bank, index));
+                markers.push(marker);
+            });
+        }
+
+        function selectBank(bank, index) {
+            // Animasi Peta
+            map.flyTo([bank.lat, bank.lng], 15);
+            
+            // Highlight Sidebar
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active-bank'));
+            const listItem = document.getElementById(`bank-item-${index}`);
+            if(listItem) listItem.classList.add('active-bank');
+
+            // Update Detail Panel
+            const panel = document.getElementById('detail-panel');
+            panel.classList.remove('hidden');
+            
+            document.getElementById('d-name').innerText = bank.name;
+            document.getElementById('d-type').innerText = bank.type;
+            document.getElementById('d-type').className = `text-[10px] font-bold px-2 py-1 rounded-full uppercase mb-2 inline-block ${bank.type === 'BPR' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`;
+            document.getElementById('d-address-text').innerText = bank.address;
+            
+            // Set URL Website
+            document.getElementById('d-web').href = bank.web;
+            
+            // Set URL Google Maps (Menggunakan koordinat Lat & Lng)
+            document.getElementById('d-maps').href = `https://www.google.com/maps/search/?api=1&query=${bank.lat},${bank.lng}`;
+        }
+
+        function filterBank() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const filtered = bankData.filter(b => 
+                b.name.toLowerCase().includes(query) || 
+                b.city.toLowerCase().includes(query)
+            );
+            renderList(filtered);
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-panel').classList.add('hidden');
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active-bank'));
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
